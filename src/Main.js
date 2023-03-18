@@ -7,6 +7,9 @@ import { GameBackend, getScreen, sleep, randInt, clearScreen, print }
 // Your code here!
 const game = async (screen, refresh, keyPress, exit) => {
   // Global game variables.
+  const keyPressed = {};
+  let moveDone = false;
+  let rotateDone = false;
   let score = 0;
   let hiscore = 0;
   let chains = 1;
@@ -287,13 +290,25 @@ const game = async (screen, refresh, keyPress, exit) => {
   const moveBlock = async () => {
     delBlock(block);
     if (keyPress["j"] && block.x > 0) {
-      _moveBlock(-1);
-    }
-    if (keyPress["l"] && block.x < 5) {
-      _moveBlock(+1);
+      if (moveDone === false) {
+        _moveBlock(-1);
+        moveDone = true;
+      }
+    } else if (keyPress["l"] && block.x < 5) {
+      if (moveDone === false) {
+        _moveBlock(+1);
+        moveDone = true;
+      }
+    } else {
+      moveDone = false;
     }
     if (keyPress["z"]) {
-      rotateBlock();
+      if (rotateDone === false) {
+        rotateBlock();
+        rotateDone = true;
+      }
+    } else {
+      rotateDone = false;
     }
     putBlock(block);
     await refresh();
@@ -359,14 +374,12 @@ const game = async (screen, refresh, keyPress, exit) => {
     await initGame();
     while (!finished) {
       if (exit.current) return;
-      for (let i = 0; i < 3; i++) {
+      let loops = Math.floor(16*Math.exp(-score/1000))+4;
+      for (let i = 0; i < loops; i++) {
         await moveBlock();
         await refresh();
-        if (keyPress["k"]) {
-          await sleep(10);
-        } else {
-          await sleep(Math.max(30, 100-Math.floor(score/30)));
-        }
+        await sleep(10);
+        if (keyPress["k"]) break;
       }
       await downBlock();
       await refresh();
