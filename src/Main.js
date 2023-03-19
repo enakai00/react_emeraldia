@@ -234,9 +234,35 @@ const game = async (screen, refresh, keyPress, exit) => {
   }
 
   const dropPieces = async () => {
+    // Drop animation
+    const field2 = structuredClone(field);
+    for (let i = 0; i < 13; i++) {
+      let dropped = false;
+      for (let y = 12; y > 0; y--) {
+        for (let x = 0; x < 7; x++) {
+          if (field2[y][x].color === "black" &
+              field2[y-1][x].color !== "black") {
+            dropped = true;
+            field2[y][x].color = field2[y-1][x].color;
+            field2[y][x].chr = field2[y-1][x].chr;
+            field2[y-1][x].color = "black";
+            field2[y-1][x].chr = " ";
+            putPiece(x, y-1, "black", " ");
+            putPiece(x, y, field2[y][x].color, field2[y][x].chr);
+          }
+        }
+      }
+      if (dropped) {
+        await refresh();
+        await sleep(20);
+      } else {
+        break;
+      }
+    }
+
     let dropped = false;
     let impacted = false;
-    for (let y = 12; y > 1; y--) {
+    for (let y = 12; y > 0; y--) {
       for (let x = 0; x < 7; x++) {
         if (field[y][x].color !== "black") {
           continue;
