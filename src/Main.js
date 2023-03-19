@@ -7,16 +7,14 @@ import { GameBackend, getScreen, sleep, randInt, clearScreen, print }
 // Your code here!
 const game = async (screen, refresh, keyPress, exit) => {
   // Global game variables.
-  let moveDone = 3;
-  let rotateDone = false;
   let score = 0;
   let hiscore = 0;
   let chains = 1;
   let crushed = false;
   const colors1 = ["red", "greenyellow", "yellow", "cyan"];
   const colors2 = colors1.concat(["purple", "blue"]);
-  let block = {x: 3, y: 0, colors: ["red", "black", "yellow", "cyan"]};
-  let nextBlock = {x: 8, y: 3, colors: ["red", "black", "yellow", "cyan"]};
+  let block = {};
+  let nextBlock = {};
   const piecePos = [[0, 0], [1, 0], [0, 1], [1, 1]];
   var field;
 
@@ -34,12 +32,12 @@ const game = async (screen, refresh, keyPress, exit) => {
     shuffleArray(colors2);
     if (randInt(0, 5) === 0) {
       nextBlock = {
-        x: 8, y: 3,
+        x: 8, y: 3, moveDone: 0, rotateDone: false,
         colors: [colors2[0], "black", colors2[1], colors2[2]]
       };
     } else {
       nextBlock = {
-        x: 8, y: 3,
+        x: 8, y: 3, moveDone: 0, rotateDone: false,
         colors: [colors1[0], "black", colors1[1], colors1[2]]
       };
     }
@@ -325,33 +323,32 @@ const game = async (screen, refresh, keyPress, exit) => {
 
   const moveBlock = async () => {
     delBlock(block);
-    if (keyPress["j"] && block.x > 0) {
-      if (moveDone === 0) {
+    if (keyPress["j"]) {
+      if (block.x > 0 && block.moveDone === 0) {
         _moveBlock(-1);
-        moveDone = 4;
+        block.moveDone = 8;
       } else {
-        moveDone = Math.max(0, moveDone - 1);
+        block.moveDone = Math.max(0, block.moveDone - 1);
       }
-    } else if (keyPress["l"] && block.x < 5) {
-      if (moveDone === 0) {
+    } else if (keyPress["l"]) {
+      if (block.x < 5 && block.moveDone === 0) {
         _moveBlock(+1);
-        moveDone = 4;
+        block.moveDone = 8;
       } else {
-        moveDone = Math.max(0, moveDone - 1);
+        block.moveDone = Math.max(0, block.moveDone - 1);
       }
     } else {
-      moveDone = 0;
+      block.moveDone = 0;
     }
     if (keyPress["z"]) {
-      if (rotateDone === false) {
+      if (block.rotateDone === false) {
         rotateBlock();
-        rotateDone = true;
+        block.rotateDone = true;
       }
     } else {
-      rotateDone = false;
+      block.rotateDone = false;
     }
     putBlock(block);
-    await refresh();
   }
 
   const downBlock = async () => {
@@ -414,11 +411,11 @@ const game = async (screen, refresh, keyPress, exit) => {
     await initGame();
     while (!finished) {
       if (exit.current) return;
-      let loops = Math.floor(16*Math.exp(-score/1000))+4;
+      let loops = Math.floor(50*Math.exp(-score/1000))+8;
       for (let i = 0; i < loops; i++) {
         await moveBlock();
         await refresh();
-        await sleep(10);
+        await sleep(5);
         if (keyPress["k"]) break;
       }
       await downBlock();
