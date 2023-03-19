@@ -20,6 +20,7 @@ const game = async (screen, refresh, keyPress, exit) => {
   const piecePos = [[0, 0], [1, 0], [0, 1], [1, 1]];
   var field;
 
+
   const setNextBlock = () => {
     const shuffleArray = (array) => {
       for (var i = array.length - 1; i > 0; i--) {
@@ -50,7 +51,11 @@ const game = async (screen, refresh, keyPress, exit) => {
     for (let y = 0; y < 13; y++) {
       field[y] = new Array(7);
       for (let x = 0; x < 7; x++) {
-        field[y][x] = {color: "black", chr: " ", visited: false, impacted: false};
+        field[y][x] = {
+          color: "black", chr: " ",
+          visited: false, impacted: false,
+          moved: false
+        };
       }
     }
     field[13] = Array(7).fill({color: "dummy", chr: " "});
@@ -64,22 +69,27 @@ const game = async (screen, refresh, keyPress, exit) => {
     print(screen, 13+x*2+1, -3+y*2+1, chr, "black", col);
   }
 
-  const clearCrushed = () => {
-    for (let y = 0; y < 14; y++) {
-      for (let x = 0; x < 7; x++) {
-        field[y][x].visited = false;
-        field[y][x].impacted = false;
-        if (field[y][x].color === "black") {
-          putPiece(x, y, "black", " ");
-        }
-      }
-    }
+  const printWave = () => {
     print(screen, 13, 0, "~".repeat(14), "red", "black");
     for (let x = 0; x < 7; x++) {
       if (field[1][x].color !== "black") {
         putPiece(x, 1, field[1][x].color, field[1][x].chr);
       }
     }
+  }
+
+  const clearCrushed = () => {
+    for (let y = 0; y < 14; y++) {
+      for (let x = 0; x < 7; x++) {
+        field[y][x].visited = false;
+        field[y][x].impacted = false;
+        field[y][x].moved = false;
+        if (field[y][x].color === "black") {
+          putPiece(x, y, "black", " ");
+        }
+      }
+    }
+    printWave();
   }
 
   const putBlock = (block, dx=0, dy=0) => {
@@ -100,7 +110,7 @@ const game = async (screen, refresh, keyPress, exit) => {
         putPiece(x, y, "black", " ", dx, dy);
       }
     }
-    print(screen, 13, 0, "~".repeat(14), "red", "black");
+    printWave();
   }
 
   const rotateBlock = () => {
@@ -125,7 +135,6 @@ const game = async (screen, refresh, keyPress, exit) => {
     // Draw start screen.
     clearScreen(screen);
     for (let y = 0; y < 24; y++) {
-//      print(screen, 0, y, " ".repeat(12), "white", "ghostwhite");
       print(screen, 12, y, " ", "white", "chocolate");
       print(screen, 12+15, y, " ", "white", "chocolate");
     }
@@ -177,7 +186,7 @@ const game = async (screen, refresh, keyPress, exit) => {
         putPiece(x, y, color, "×");
         field[y][x].visited = true;
       } else if (field[y][x].chr === "×") {
-        putPiece(x, y, color, "@");
+        putPiece(x, y, color, "*");
         field[y][x].chr = " ";
         field[y][x].color = "black";
         field[y][x].visited = true;
@@ -211,6 +220,24 @@ const game = async (screen, refresh, keyPress, exit) => {
     print(screen, 30, 13, hiscore.toString().padStart(8, "0"));
   }
 
+  const flashPiece = async () => {
+    for (let i = 0; i < 4; i++) {
+      for (let y = 1; y < 13; y++) {
+        for (let x = 0; x < 7; x++) {
+          if (field[y][x].impacted) {
+            if (i % 2 === 0) {
+              putPiece(x, y, "white", " ");
+            } else {
+              putPiece(x, y, field[y][x].color, " ");
+            }
+          }
+        }
+      }
+      await refresh();
+      await sleep(50);
+    }
+  }
+
   const placeBlock = async () => {
     let impacted = false;
     for (let i = 0; i < 4; i++) {
@@ -225,9 +252,10 @@ const game = async (screen, refresh, keyPress, exit) => {
       }
     }
     if (impacted) {
+      await flashPiece();
       applyImpact();
       await refresh();
-      await sleep(500);
+      await sleep(400);
     }        
     clearCrushed();
     await refresh();
@@ -235,66 +263,49 @@ const game = async (screen, refresh, keyPress, exit) => {
 
   const dropPieces = async () => {
     // Drop animation
-    const field2 = structuredClone(field);
+    let impacted = false;
+    let dropped = false;
     for (let i = 0; i < 13; i++) {
-      let dropped = false;
-      for (let y = 12; y > 0; y--) {
+      let moved = false;
+      for (let y = 12; y > i; y--) {
         for (let x = 0; x < 7; x++) {
-          if (field2[y][x].color === "black" &
-              field2[y-1][x].color !== "black") {
+          field[y][x].moved = false;
+          if (field[y][x].color === "black" &
+              field[y-1][x].color !== "black") {
+            moved = true;
             dropped = true;
-            field2[y][x].color = field2[y-1][x].color;
-            field2[y][x].chr = field2[y-1][x].chr;
-            field2[y-1][x].color = "black";
-            field2[y-1][x].chr = " ";
+            field[y][x].color = field[y-1][x].color;
+            field[y][x].chr = field[y-1][x].chr;
+            field[y][x].moved = true;
+            field[y-1][x].color = "black";
+            field[y-1][x].chr = " ";
             putPiece(x, y-1, "black", " ");
-            putPiece(x, y, field2[y][x].color, field2[y][x].chr);
+            putPiece(x, y, field[y][x].color, field[y][x].chr);
+            if (field[y+1][x].moved === false &
+                field[y+1][x].color === field[y][x].color) {
+                  impacted = true;
+                  field[y][x].impacted = true;
+                  putPiece(x, y, "white", " ");
+            }
           }
         }
       }
-      if (dropped) {
+      if (moved) {
+        printWave();
         await refresh();
-        await sleep(20);
+        await sleep(10);
       } else {
         break;
       }
     }
 
-    let dropped = false;
-    let impacted = false;
-    for (let y = 12; y > 0; y--) {
-      for (let x = 0; x < 7; x++) {
-        if (field[y][x].color !== "black") {
-          continue;
-        }            
-        for (let dy = -1; y+dy > 0; dy--) {
-          if (field[y+dy][x].color !== "black") {
-            dropped = true;
-            let ddy = 0;
-            while (y+dy+ddy >= 0 && field[y+dy+ddy][x].color !== "black") {
-              putPiece(x, y+ddy, field[y+dy+ddy][x].color, field[y+dy+ddy][x].chr);
-              field[y+ddy][x].color = field[y+dy+ddy][x].color;
-              field[y+ddy][x].chr = field[y+dy+ddy][x].chr;
-              putPiece(x, y+dy+ddy, "black", " ");
-              field[y+dy+ddy][x].color = "black";
-              field[y+dy+ddy][x].chr = " ";
-              ddy -= 1;
-            }
-            if (field[y][x].color === field[y+1][x].color) {
-              impacted = true;
-              field[y][x].impacted = true;
-            }
-          }
-        }
-      }
-    }        
     if (impacted) {
+      await flashPiece();
       applyImpact();
     }        
     await refresh();
-    await sleep(500);
+    await sleep(400);
     clearCrushed();
-    await refresh();
     return dropped;
   }
 
