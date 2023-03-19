@@ -7,8 +7,7 @@ import { GameBackend, getScreen, sleep, randInt, clearScreen, print }
 // Your code here!
 const game = async (screen, refresh, keyPress, exit) => {
   // Global game variables.
-  const keyPressed = {};
-  let moveDone = false;
+  let moveDone = 3;
   let rotateDone = false;
   let score = 0;
   let hiscore = 0;
@@ -290,17 +289,21 @@ const game = async (screen, refresh, keyPress, exit) => {
   const moveBlock = async () => {
     delBlock(block);
     if (keyPress["j"] && block.x > 0) {
-      if (moveDone === false) {
+      if (moveDone === 0) {
         _moveBlock(-1);
-        moveDone = true;
+        moveDone = 4;
+      } else {
+        moveDone = Math.max(0, moveDone - 1);
       }
     } else if (keyPress["l"] && block.x < 5) {
-      if (moveDone === false) {
+      if (moveDone === 0) {
         _moveBlock(+1);
-        moveDone = true;
+        moveDone = 4;
+      } else {
+        moveDone = Math.max(0, moveDone - 1);
       }
     } else {
-      moveDone = false;
+      moveDone = 0;
     }
     if (keyPress["z"]) {
       if (rotateDone === false) {
