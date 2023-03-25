@@ -21,7 +21,7 @@ const Cell = (props) => {
     backgroundColor: props.elem.bgColor,
     fontSize: "12pt",
     fontWeight: "bold",
-    fontFamily: "monospace",
+    fontFamily: "'Courier New', monospace",
   };
 
   const element = (
